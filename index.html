@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소방 장비 이력 관리 시스템</title>
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --main-red: #D32F2F;
+            --bg-gray: #f4f4f4;
+            --text-black: #000000;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: var(--bg-gray);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-black);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: var(--main-red);
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* Input Card Style */
+        .input-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .form-group { grid-template-columns: 1fr; }
+        }
+
+        .input-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        input, textarea {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            color: var(--text-black);
+        }
+
+        textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--main-red);
+            color: white;
+            padding: 15px;
+            width: 100%;
+            font-size: 1.1rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #b71c1c;
+        }
+
+        /* Table Style */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background-color: #eeeeee;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: var(--text-black);
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            color: var(--text-black);
+            font-size: 0.95rem;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* QR Thumbnail */
+        .qr-thumb {
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            padding: 2px;
+            background: white;
+        }
+
+        .qr-thumb img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-delete {
+            background-color: #555;
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Lightbox Modal */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        #modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #modal-qr {
+            margin-bottom: 15px;
+        }
+
+        #modal-info {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-black);
+        }
+
+        .btn-close {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: var(--main-red);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🚒 소방 장비 이력 관리</h1>
+        <p>장비 정보를 입력하여 QR 코드를 생성하고 관리하세요.</p>
+    </header>
+
+    <div class="input-card">
+        <div class="form-group">
+            <div class="input-item">
+                <label>장비명</label>
+                <input type="text" id="equipName" placeholder="예: 소방펌프 A">
+            </div>
+            <div class="input-item">
+                <label>등록일자</label>
+                <input type="date" id="regDate">
+            </div>
+            <div class="input-item">
+                <label>내용연수 (년)</label>
+                <input type="number" id="lifeSpan" placeholder="예: 5">
+            </div>
+            <div class="input-item">
+                <label>간단 메모</label>
+                <input type="text" id="memo" placeholder="예: 상태 양호">
+            </div>
+            <div class="input-item full-width">
+                <label>상세 설명</label>
+                <textarea id="detail" placeholder="상세 점검 이력 등을 입력하세요."></textarea>
+            </div>
+        </div>
+        <button class="btn-primary" onclick="registerEquipment()">장비 등록하기</button>
+    </div>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>QR</th>
+                    <th>장비명</th>
+                    <th>메모</th>
+                    <th>연수</th>
+                    <th>등록일자</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="equipList">
+                <!-- 데이터가 여기에 추가됨 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div id="modal" onclick="closeModal()">
+    <div id="modal-content" onclick="event.stopPropagation()">
+        <div id="modal-qr"></div>
+        <div id="modal-info"></div>
+        <button class="btn-close" onclick="closeModal()">닫기</button>
+    </div>
+</div>
+
+<script>
+    // 오늘 날짜 기본 설정
+    document.getElementById('regDate').value = new Date().toISOString().substring(0, 10);
+
+    function registerEquipment() {
+        const name = document.getElementById('equipName').value;
+        const date = document.getElementById('regDate').value;
+        const life = document.getElementById('lifeSpan').value;
+        const memo = document.getElementById('memo').value;
+        const detail = document.getElementById('detail').value;
+
+        if (!name || !date || !life) {
+            alert("장비명, 등록일자, 내용연수는 필수 입력 항목입니다.");
+            return;
+        }
+
+        const tbody = document.getElementById('equipList');
+        const row = document.createElement('tr');
+
+        // QR 데이터 (장비명 | 날짜) - 인식률을 위해 최소화
+        const qrData = `${name} | ${date}`;
+
+        // 1. QR 썸네일 생성용 컨테이너
+        const qrContainer = document.createElement('div');
+        qrContainer.className = 'qr-thumb';
+        
+        // 2. 행 데이터 생성
+        row.innerHTML = `
+            <td></td>
+            <td><strong>${name}</strong></td>
+            <td>${memo}</td>
+            <td>${life}년</td>
+            <td>${date}</td>
+            <td><button class="btn-delete" onclick="deleteRow(this)">삭제</button></td>
+        `;
+
+        // 실제 QR 생성 (임시 div에 생성 후 이미지로 변환)
+        const tempDiv = document.createElement('div');
+        new QRCode(tempDiv, {
+            text: qrData,
+            width: 128,
+            height: 128,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H // 높은 오류 정정 레벨 설정
+        });
+
+        // 라이브러리 렌더링 시간을 위해 약간의 지연 후 이미지 추출
+        setTimeout(() => {
+            const qrImg = tempDiv.querySelector('img');
+            if (qrImg) {
+                qrContainer.appendChild(qrImg.cloneNode(true));
+                qrContainer.onclick = () => openModal(qrData, qrImg.src);
+            } else {
+                // 만약 canvas로 그려진 경우 처리
+                const qrCanvas = tempDiv.querySelector('canvas');
+                if (qrCanvas) {
+                    const dataUrl = qrCanvas.toDataURL("image/png");
+                    const newImg = document.createElement('img');
+                    newImg.src = dataUrl;
+                    qrContainer.appendChild(newImg);
+                    qrContainer.onclick = () => openModal(qrData, dataUrl);
+                }
+            }
+            row.cells[0].appendChild(qrContainer);
+        }, 100);
+
+        tbody.appendChild(row);
+
+        // 입력창 초기화
+        document.getElementById('equipName').value = '';
+        document.getElementById('memo').value = '';
+        document.getElementById('detail').value = '';
+        document.getElementById('lifeSpan').value = '';
+    }
+
+    function deleteRow(btn) {
+        if(confirm("정말 삭제하시겠습니까?")) {
+            btn.parentElement.parentElement.remove();
+        }
+    }
+
+    // Modal Functions
+    function openModal(info, imgSrc) {
+        const modal = document.getElementById('modal');
+        const modalQr = document.getElementById('modal-qr');
+        const modalInfo = document.getElementById('modal-info');
+
+        modalQr.innerHTML = `<img src="${imgSrc}" style="width:250px; height:250px;">`;
+        modalInfo.innerText = info;
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
